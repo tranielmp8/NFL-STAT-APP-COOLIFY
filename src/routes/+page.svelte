@@ -27,6 +27,12 @@
 			teams: visibleTeams.filter((team) => team.division === `${selectedConference} ${name}`)
 		}))
 	);
+
+	const leaderBlocks = $derived([
+		{ label: 'Passing', category: 'passing', rows: data.leaderPreview.passing },
+		{ label: 'Rushing', category: 'rushing', rows: data.leaderPreview.rushing },
+		{ label: 'Receiving', category: 'receiving', rows: data.leaderPreview.receiving }
+	]);
 </script>
 
 <svelte:head>
@@ -54,6 +60,8 @@
 
 			<nav class="hidden items-center gap-6 text-sm font-semibold text-[#8a909e] md:flex">
 				<a class="transition hover:text-white" href="#teams">Teams</a>
+				<a class="transition hover:text-white" href="/players">Players</a>
+				<a class="transition hover:text-white" href="/leaders">Leaders</a>
 				{#if data.role === 'admin'}
 					<a class="transition hover:text-white" href="/admin/settings">Admin</a>
 				{/if}
@@ -72,15 +80,28 @@
 				<div
 					class="mb-4 inline-flex items-center gap-2 rounded border border-[#f5a623]/30 bg-[#f5a623]/10 px-3 py-1 text-xs font-bold tracking-widest text-[#f5a623] uppercase"
 				>
-					2026 Build Section 4
+					{data.activeSeason}
+					{data.activeSeasonType}
 				</div>
 				<h1 class="max-w-3xl text-4xl leading-tight font-black md:text-6xl">
-					Team browser wired to your Postgres database.
+					NFL stats, leaders, rosters, and schedules in one place.
 				</h1>
 				<p class="mt-5 max-w-2xl text-base leading-7 text-[#aeb4c0]">
-					The app now loads canonical NFL team metadata from the database. Roster, schedule, and
-					player-stat pages will build on this foundation.
+					Browse every franchise, search synced players, and compare league leaders for the active
+					season.
 				</p>
+				<form class="mt-6 flex max-w-2xl flex-col gap-3 sm:flex-row" method="get" action="/players">
+					<input
+						class="min-h-12 flex-1 border-white/10 bg-[#0d0f14] px-4 text-white focus:border-[#f5a623] focus:ring-[#f5a623]"
+						name="q"
+						placeholder="Search player, team, or position"
+					/>
+					<button
+						class="min-h-12 bg-[#f5a623] px-6 text-sm font-black tracking-wide text-[#11151d] uppercase transition hover:bg-[#ffbd4a]"
+					>
+						Search Players
+					</button>
+				</form>
 			</div>
 
 			<div class="grid grid-cols-3 gap-3">
@@ -89,17 +110,84 @@
 					<div class="mt-1 text-xs font-bold tracking-widest text-[#8a909e] uppercase">Teams</div>
 				</div>
 				<div class="border border-white/10 bg-[#0d0f14] p-4">
-					<div class="text-3xl font-black text-white">8</div>
-					<div class="mt-1 text-xs font-bold tracking-widest text-[#8a909e] uppercase">
-						Divisions
-					</div>
+					<div class="text-3xl font-black text-white">{data.health.players}</div>
+					<div class="mt-1 text-xs font-bold tracking-widest text-[#8a909e] uppercase">Players</div>
 				</div>
 				<div class="border border-white/10 bg-[#0d0f14] p-4">
-					<div class="text-3xl font-black text-white">PG</div>
+					<div class="text-3xl font-black text-white">{data.health.activeSeasonStatRows}</div>
 					<div class="mt-1 text-xs font-bold tracking-widest text-[#8a909e] uppercase">
-						Database
+						Stat Rows
 					</div>
 				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="border-b border-white/10 bg-[#0d0f14]">
+		<div class="mx-auto max-w-7xl px-4 py-10">
+			<div class="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+				<div>
+					<h2 class="text-2xl font-black">League Leader Snapshot</h2>
+					<p class="mt-1 text-sm text-[#8a909e]">
+						Top synced leaders for {data.activeSeason}
+						{data.activeSeasonType}.
+					</p>
+				</div>
+				<a
+					href={`/leaders?season=${data.activeSeason}&type=${data.activeSeasonType}`}
+					class="bg-[#f5a623] px-4 py-3 text-sm font-black text-[#11151d] transition hover:bg-[#ffbd4a]"
+				>
+					View All Leaders
+				</a>
+			</div>
+
+			<div class="grid gap-4 lg:grid-cols-3">
+				{#each leaderBlocks as block}
+					<article class="border border-white/10 bg-[#161921] p-5">
+						<div class="mb-4 flex items-center justify-between gap-3">
+							<h3 class="text-sm font-black tracking-widest text-[#f5a623] uppercase">
+								{block.label}
+							</h3>
+							<a
+								class="text-xs font-black tracking-widest text-[#8a909e] uppercase transition hover:text-white"
+								href={`/leaders?category=${block.category}&season=${data.activeSeason}&type=${data.activeSeasonType}`}
+							>
+								More
+							</a>
+						</div>
+						{#if block.rows.length}
+							<div class="space-y-3">
+								{#each block.rows as row, index}
+									<a
+										class="flex items-center justify-between gap-3 border border-white/10 bg-[#0d0f14] p-3 transition hover:border-[#f5a623]/50"
+										href={`/teams/${row.team.abbreviation.toLowerCase()}/players/${row.player.id}?season=${data.activeSeason}&type=${data.activeSeasonType}`}
+									>
+										<div class="flex min-w-0 items-center gap-3">
+											<div class="w-7 text-center text-lg font-black text-[#f5a623]">
+												{index + 1}
+											</div>
+											<div class="min-w-0">
+												<div class="truncate font-black text-white">{row.player.name}</div>
+												<div class="text-xs text-[#8a909e]">
+													{row.team.abbreviation} / {row.player.position}
+												</div>
+											</div>
+										</div>
+										<div class="shrink-0 text-xl font-black text-white">
+											{typeof row.value === 'number' ? row.value.toLocaleString() : row.value}
+										</div>
+									</a>
+								{/each}
+							</div>
+						{:else}
+							<div
+								class="border border-dashed border-white/15 bg-[#0d0f14] p-6 text-sm text-[#8a909e]"
+							>
+								No synced leaders yet.
+							</div>
+						{/if}
+					</article>
+				{/each}
 			</div>
 		</div>
 	</section>

@@ -4,7 +4,9 @@ import { getPlayerStats } from '$lib/server/nfl/stats';
 import { getAppSettings } from '$lib/server/nfl/settings';
 import { ensureTeamsSeeded, getTeamByAbbreviation } from '$lib/server/nfl/teams';
 
-export async function load({ params }) {
+const seasonTypes = new Set(['preseason', 'regular', 'postseason']);
+
+export async function load({ params, url }) {
 	await ensureTeamsSeeded();
 
 	const team = await getTeamByAbbreviation(params.abbr);
@@ -15,13 +17,17 @@ export async function load({ params }) {
 		error(404, 'Player not found');
 	}
 
-	const stats = await getPlayerStats(player.id, settings.currentSeason, settings.currentSeasonType);
+	const seasonParam = Number(url.searchParams.get('season'));
+	const typeParam = url.searchParams.get('type') ?? settings.currentSeasonType;
+	const activeSeason = Number.isInteger(seasonParam) ? seasonParam : settings.currentSeason;
+	const activeSeasonType = seasonTypes.has(typeParam) ? typeParam : settings.currentSeasonType;
+	const stats = await getPlayerStats(player.id, activeSeason, activeSeasonType);
 
 	return {
 		team,
 		player,
 		stats,
-		activeSeason: settings.currentSeason,
-		activeSeasonType: settings.currentSeasonType
+		activeSeason,
+		activeSeasonType
 	};
 }

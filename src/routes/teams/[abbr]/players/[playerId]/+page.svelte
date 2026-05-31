@@ -50,6 +50,13 @@
 		};
 	} = $props();
 
+	const seasonOptions = [2025, 2026, 2027, 2028];
+	const seasonTypes = [
+		{ value: 'regular', label: 'Regular' },
+		{ value: 'postseason', label: 'Postseason' },
+		{ value: 'preseason', label: 'Preseason' }
+	];
+
 	const statCards = $derived.by(() => {
 		const stats = data.stats;
 		if (!stats) return [];
@@ -113,7 +120,7 @@
 	<header class="border-b border-white/10 bg-[#11151d]">
 		<div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
 			<a
-				href={`/teams/${data.team.abbreviation.toLowerCase()}`}
+				href={`/teams/${data.team.abbreviation.toLowerCase()}?season=${data.activeSeason}&type=${data.activeSeasonType}`}
 				class="text-sm font-black tracking-widest text-[#8a909e] uppercase transition hover:text-white"
 			>
 				Back to {data.team.abbreviation}
@@ -152,6 +159,29 @@
 			<div class="mt-5 text-sm font-bold text-[#8a909e] capitalize">
 				Status: {data.player.status}
 			</div>
+			<form class="mt-6 grid max-w-lg gap-3 sm:grid-cols-[1fr_1fr_auto]" method="get">
+				<select
+					class="min-h-11 border-white/10 bg-[#161921] text-white focus:border-[#f5a623] focus:ring-[#f5a623]"
+					name="season"
+				>
+					{#each seasonOptions as season}
+						<option value={season} selected={season === data.activeSeason}>{season}</option>
+					{/each}
+				</select>
+				<select
+					class="min-h-11 border-white/10 bg-[#161921] text-white focus:border-[#f5a623] focus:ring-[#f5a623]"
+					name="type"
+				>
+					{#each seasonTypes as type}
+						<option value={type.value} selected={type.value === data.activeSeasonType}>
+							{type.label}
+						</option>
+					{/each}
+				</select>
+				<button class="min-h-11 bg-[#f5a623] px-5 text-sm font-black text-[#11151d] uppercase">
+					Apply
+				</button>
+			</form>
 		</div>
 	</section>
 

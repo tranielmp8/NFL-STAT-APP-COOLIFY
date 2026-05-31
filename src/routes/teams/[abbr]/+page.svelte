@@ -76,6 +76,12 @@
 	const team = $derived(data.team);
 	let activeRosterTab = $state<keyof RosterGroups>('offense');
 
+	const seasonOptions = [2025, 2026, 2027, 2028];
+	const seasonTypes = [
+		{ value: 'regular', label: 'Regular' },
+		{ value: 'postseason', label: 'Postseason' },
+		{ value: 'preseason', label: 'Preseason' }
+	];
 	const rosterTabs: { key: keyof RosterGroups; label: string }[] = [
 		{ key: 'offense', label: 'Offense' },
 		{ key: 'defense', label: 'Defense' },
@@ -136,6 +142,14 @@
 		const value = typeof leader.value === 'number' ? leader.value.toLocaleString() : leader.value;
 		return `${value} ${leader.suffix}`;
 	}
+
+	function playerHref(playerId: number) {
+		const params = new URLSearchParams({
+			season: String(data.activeSeason),
+			type: data.activeSeasonType
+		});
+		return `/teams/${team.abbreviation.toLowerCase()}/players/${playerId}?${params.toString()}`;
+	}
 </script>
 
 <svelte:head>
@@ -154,9 +168,11 @@
 			>
 				Back to teams
 			</a>
-			<div class="text-sm font-black tracking-widest text-[#f5a623] uppercase">
-				{team.abbreviation}
-			</div>
+			<nav class="flex items-center gap-5 text-sm font-black tracking-widest uppercase">
+				<a class="text-[#8a909e] transition hover:text-white" href="/players">Players</a>
+				<a class="text-[#8a909e] transition hover:text-white" href="/leaders">Leaders</a>
+				<span class="text-[#f5a623]">{team.abbreviation}</span>
+			</nav>
 		</div>
 	</header>
 
@@ -190,6 +206,56 @@
 					<span class="mx-2 text-white/20">/</span>
 					{data.playerCount} roster players synced
 				</div>
+				<form class="mt-6 grid max-w-lg gap-3 sm:grid-cols-[1fr_1fr_auto]" method="get">
+					<select
+						class="min-h-11 border-white/10 bg-[#0d0f14] text-white focus:border-[#f5a623] focus:ring-[#f5a623]"
+						name="season"
+					>
+						{#each seasonOptions as season}
+							<option value={season} selected={season === data.activeSeason}>{season}</option>
+						{/each}
+					</select>
+					<select
+						class="min-h-11 border-white/10 bg-[#0d0f14] text-white focus:border-[#f5a623] focus:ring-[#f5a623]"
+						name="type"
+					>
+						{#each seasonTypes as type}
+							<option value={type.value} selected={type.value === data.activeSeasonType}>
+								{type.label}
+							</option>
+						{/each}
+					</select>
+					<button class="min-h-11 bg-[#f5a623] px-5 text-sm font-black text-[#11151d] uppercase">
+						Apply
+					</button>
+				</form>
+			</div>
+		</div>
+	</section>
+
+	<section class="border-b border-white/10 bg-[#0d0f14]">
+		<div class="mx-auto grid max-w-7xl gap-3 px-4 py-6 sm:grid-cols-2 lg:grid-cols-4">
+			<div class="border border-white/10 bg-[#161921] p-4">
+				<div class="text-3xl font-black text-white">
+					{data.record.wins}-{data.record.losses}{data.record.ties ? `-${data.record.ties}` : ''}
+				</div>
+				<div class="mt-1 text-xs font-black tracking-widest text-[#8a909e] uppercase">Record</div>
+			</div>
+			<div class="border border-white/10 bg-[#161921] p-4">
+				<div class="text-3xl font-black text-white">{data.playerCount}</div>
+				<div class="mt-1 text-xs font-black tracking-widest text-[#8a909e] uppercase">
+					Roster Players
+				</div>
+			</div>
+			<div class="border border-white/10 bg-[#161921] p-4">
+				<div class="text-3xl font-black text-white">{data.schedule.length}</div>
+				<div class="mt-1 text-xs font-black tracking-widest text-[#8a909e] uppercase">Games</div>
+			</div>
+			<div class="border border-white/10 bg-[#161921] p-4">
+				<div class="text-3xl font-black text-white">{data.statLeaders.length}</div>
+				<div class="mt-1 text-xs font-black tracking-widest text-[#8a909e] uppercase">
+					Leader Categories
+				</div>
 			</div>
 		</div>
 	</section>
@@ -220,7 +286,7 @@
 				<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
 					{#each data.statLeaders as leader}
 						<a
-							href={`/teams/${team.abbreviation.toLowerCase()}/players/${leader.player.id}`}
+							href={playerHref(leader.player.id)}
 							class="group border border-white/10 bg-[#161921] p-4 transition hover:-translate-y-0.5 hover:border-[#f5a623]/50"
 						>
 							<div class="mb-4 flex items-center justify-between gap-3">
@@ -338,7 +404,7 @@
 				<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
 					{#each activePlayers as player}
 						<a
-							href={`/teams/${team.abbreviation.toLowerCase()}/players/${player.id}`}
+							href={playerHref(player.id)}
 							class="group flex min-h-24 items-center gap-3 border border-white/10 bg-[#0d0f14] p-3 transition hover:border-[#f5a623]/50"
 						>
 							<div

@@ -5,7 +5,9 @@ import { getScheduleForTeam, recordForTeam } from '$lib/server/nfl/schedule';
 import { getTeamStatLeaders } from '$lib/server/nfl/stats';
 import { getAppSettings } from '$lib/server/nfl/settings';
 
-export async function load({ params }) {
+const seasonTypes = new Set(['preseason', 'regular', 'postseason']);
+
+export async function load({ params, url }) {
 	await ensureTeamsSeeded();
 
 	const team = await getTeamByAbbreviation(params.abbr);
@@ -15,18 +17,18 @@ export async function load({ params }) {
 	}
 
 	const settings = await getAppSettings();
+	const seasonParam = Number(url.searchParams.get('season'));
+	const typeParam = url.searchParams.get('type') ?? settings.currentSeasonType;
+	const activeSeason = Number.isInteger(seasonParam) ? seasonParam : settings.currentSeason;
+	const activeSeasonType = seasonTypes.has(typeParam) ? typeParam : settings.currentSeasonType;
 	const players = await getPlayersByTeamAbbreviation(params.abbr);
-	const schedule = await getScheduleForTeam(params.abbr, settings.currentSeason);
-	const statLeaders = await getTeamStatLeaders(
-		params.abbr,
-		settings.currentSeason,
-		settings.currentSeasonType
-	);
+	const schedule = await getScheduleForTeam(params.abbr, activeSeason);
+	const statLeaders = await getTeamStatLeaders(params.abbr, activeSeason, activeSeasonType);
 
 	return {
 		team,
-		activeSeason: settings.currentSeason,
-		activeSeasonType: settings.currentSeasonType,
+		activeSeason,
+		activeSeasonType,
 		roster: groupRoster(players),
 		playerCount: players.length,
 		schedule,
