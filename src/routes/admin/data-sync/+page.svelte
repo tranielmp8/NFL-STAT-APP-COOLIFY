@@ -73,12 +73,27 @@
 			class="flex flex-col justify-between gap-4 border-b border-white/10 pb-6 md:flex-row md:items-end"
 		>
 			<div>
-				<a
-					href="/admin/settings"
-					class="text-xs font-black tracking-widest text-[#8a909e] uppercase transition hover:text-white"
-				>
-					Back to settings
-				</a>
+				<nav class="flex flex-wrap gap-2" aria-label="Admin navigation">
+					<a
+						href="/"
+						class="border border-white/10 bg-[#161921] px-4 py-2 text-sm font-black tracking-wide text-[#c6cad3] uppercase transition hover:border-white/25 hover:bg-[#1f2430] hover:text-white"
+					>
+						Teams
+					</a>
+					<a
+						href="/admin/settings"
+						class="border border-white/10 bg-[#161921] px-4 py-2 text-sm font-black tracking-wide text-[#c6cad3] uppercase transition hover:border-white/25 hover:bg-[#1f2430] hover:text-white"
+					>
+						Settings
+					</a>
+					<a
+						href="/admin/data-sync"
+						aria-current="page"
+						class="border border-[#f5a623]/40 bg-[#f5a623]/15 px-4 py-2 text-sm font-black tracking-wide text-[#f5a623] uppercase"
+					>
+						Data Sync
+					</a>
+				</nav>
 				<h1 class="mt-6 text-3xl font-black md:text-4xl">Data Sync</h1>
 				<p class="mt-2 max-w-2xl text-sm leading-6 text-[#aeb4c0]">
 					Monitor database coverage and run the sync commands for the active NFL season.

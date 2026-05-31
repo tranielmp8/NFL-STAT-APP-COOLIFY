@@ -24,18 +24,27 @@
 			class="flex flex-col justify-between gap-4 border-b border-white/10 pb-6 md:flex-row md:items-end"
 		>
 			<div>
-				<a
-					href="/"
-					class="text-xs font-black tracking-widest text-[#8a909e] uppercase transition hover:text-white"
-				>
-					Back to teams
-				</a>
-				<a
-					href="/admin/data-sync"
-					class="ml-4 text-xs font-black tracking-widest text-[#8a909e] uppercase transition hover:text-white"
-				>
-					Data sync
-				</a>
+				<nav class="flex flex-wrap gap-2" aria-label="Admin navigation">
+					<a
+						href="/"
+						class="border border-white/10 bg-[#161921] px-4 py-2 text-sm font-black tracking-wide text-[#c6cad3] uppercase transition hover:border-white/25 hover:bg-[#1f2430] hover:text-white"
+					>
+						Teams
+					</a>
+					<a
+						href="/admin/settings"
+						aria-current="page"
+						class="border border-[#f5a623]/40 bg-[#f5a623]/15 px-4 py-2 text-sm font-black tracking-wide text-[#f5a623] uppercase"
+					>
+						Settings
+					</a>
+					<a
+						href="/admin/data-sync"
+						class="border border-white/10 bg-[#161921] px-4 py-2 text-sm font-black tracking-wide text-[#c6cad3] uppercase transition hover:border-white/25 hover:bg-[#1f2430] hover:text-white"
+					>
+						Data Sync
+					</a>
+				</nav>
 				<h1 class="mt-6 text-3xl font-black md:text-4xl">Admin Settings</h1>
 				<p class="mt-2 max-w-2xl text-sm leading-6 text-[#aeb4c0]">
 					Control which NFL season the team pages and player pages use by default.
