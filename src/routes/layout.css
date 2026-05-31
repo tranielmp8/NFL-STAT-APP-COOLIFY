@@ -1,0 +1,13 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@layer base {
+	html {
+		scroll-behavior: smooth;
+	}
+	body {
+		background-color: #060d1a;
+		color: white;
+	}
+}
