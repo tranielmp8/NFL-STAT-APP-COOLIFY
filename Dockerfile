@@ -22,6 +22,8 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/build ./build
+COPY --from=builder /app/drizzle ./drizzle
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/src/lib/server/db ./src/lib/server/db
 COPY --from=builder /app/src/lib/server/nfl/team-data.ts ./src/lib/server/nfl/team-data.ts
