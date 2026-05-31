@@ -164,5 +164,89 @@
 				{/if}
 			</section>
 		</div>
+
+		<section class="mt-8 border border-white/10 bg-[#161921] p-5">
+			<div class="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+				<div>
+					<h2 class="text-lg font-black">Admin Users</h2>
+					<p class="mt-1 text-sm text-[#8a909e]">
+						Promote trusted accounts after they sign in once. Your own admin access is protected.
+					</p>
+				</div>
+				<div class="text-xs font-black tracking-widest text-[#8a909e] uppercase">
+					{data.users.length} users
+				</div>
+			</div>
+
+			{#if data.users.length}
+				<div class="mt-5 overflow-x-auto">
+					<table class="w-full min-w-[720px] text-left text-sm">
+						<thead
+							class="border-b border-white/10 text-xs font-black tracking-widest text-[#8a909e] uppercase"
+						>
+							<tr>
+								<th class="py-3 pr-4">User</th>
+								<th class="py-3 pr-4">Role</th>
+								<th class="py-3 pr-4">Joined</th>
+								<th class="py-3">Update</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-white/10">
+							{#each data.users as appUser}
+								<tr>
+									<td class="py-4 pr-4">
+										<div class="font-black text-white">{appUser.name}</div>
+										<div class="text-xs text-[#8a909e]">{appUser.email}</div>
+									</td>
+									<td class="py-4 pr-4">
+										<span
+											class={[
+												'px-2 py-1 text-xs font-black tracking-widest uppercase',
+												appUser.role === 'admin'
+													? 'border border-[#f5a623]/30 bg-[#f5a623]/10 text-[#f5a623]'
+													: 'border border-white/10 bg-[#0d0f14] text-[#aeb4c0]'
+											]}
+										>
+											{appUser.role}
+										</span>
+									</td>
+									<td class="py-4 pr-4 text-[#c6cad3]">
+										{new Date(appUser.createdAt).toLocaleDateString()}
+									</td>
+									<td class="py-4">
+										<form
+											class="flex items-center gap-3"
+											method="post"
+											action="?/updateUserRole"
+											use:enhance
+										>
+											<input name="userId" type="hidden" value={appUser.id} />
+											<select
+												class="w-36 border-white/10 bg-[#0d0f14] text-white focus:border-[#f5a623] focus:ring-[#f5a623]"
+												name="role"
+												disabled={appUser.id === data.user.id}
+											>
+												<option value="user" selected={appUser.role !== 'admin'}>User</option>
+												<option value="admin" selected={appUser.role === 'admin'}>Admin</option>
+											</select>
+											<button
+												class="bg-[#f5a623] px-4 py-2 text-xs font-black text-[#11151d] transition hover:bg-[#ffbd4a] disabled:cursor-not-allowed disabled:opacity-50"
+												disabled={appUser.id === data.user.id}
+											>
+												Save
+											</button>
+										</form>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{:else}
+				<div class="mt-5 border border-white/10 bg-[#0d0f14] p-5 text-sm text-[#aeb4c0]">
+					No users have signed in yet.
+				</div>
+			{/if}
+		</section>
 	</section>
 </main>

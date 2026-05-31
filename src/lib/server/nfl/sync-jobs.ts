@@ -1,9 +1,9 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { syncJobs } from '$lib/server/db/schema';
 
 export const syncJobTypes = ['teams', 'rosters', 'schedules', 'stats', 'full'] as const;
-export const syncJobStatuses = ['queued', 'running', 'completed', 'failed'] as const;
+export const syncJobStatuses = ['queued', 'running', 'completed', 'failed', 'canceled'] as const;
 
 export type SyncJobType = (typeof syncJobTypes)[number];
 export type SyncJobStatus = (typeof syncJobStatuses)[number];
@@ -62,6 +62,21 @@ export async function markSyncJobFailed(id: number, error: string) {
 		.update(syncJobs)
 		.set({ status: 'failed', error, finishedAt: new Date(), updatedAt: new Date() })
 		.where(eq(syncJobs.id, id))
+		.returning();
+
+	return job;
+}
+
+export async function cancelQueuedSyncJob(id: number, canceledBy?: string | null) {
+	const [job] = await db
+		.update(syncJobs)
+		.set({
+			status: 'canceled',
+			message: canceledBy ? `Canceled by ${canceledBy}.` : 'Canceled.',
+			finishedAt: new Date(),
+			updatedAt: new Date()
+		})
+		.where(and(eq(syncJobs.id, id), eq(syncJobs.status, 'queued')))
 		.returning();
 
 	return job;

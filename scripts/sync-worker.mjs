@@ -25,8 +25,30 @@ const jobSteps = {
 };
 
 const pollMs = Number(process.env.SYNC_WORKER_POLL_MS ?? 15000);
+const staleRunningMinutes = Number(process.env.SYNC_WORKER_STALE_MINUTES ?? 180);
 const runOnce = process.env.SYNC_WORKER_ONCE === 'true' || process.argv.includes('--once');
 const sql = postgres(process.env.DATABASE_URL);
+
+async function recoverStaleJobs() {
+	if (!Number.isFinite(staleRunningMinutes) || staleRunningMinutes <= 0) return 0;
+
+	const jobs = await sql`
+		update sync_jobs
+		set status = 'failed',
+			error = ${`Worker heartbeat stale for more than ${staleRunningMinutes} minutes.`},
+			finished_at = now(),
+			updated_at = now()
+		where status = 'running'
+			and updated_at < now() - (${staleRunningMinutes} || ' minutes')::interval
+		returning id
+	`;
+
+	if (jobs.length > 0) {
+		console.warn(`Marked ${jobs.length} stale sync job(s) as failed.`);
+	}
+
+	return jobs.length;
+}
 
 async function claimNextJob() {
 	return sql.begin(async (tx) => {
@@ -77,6 +99,19 @@ async function failJob(id, error) {
 	`;
 }
 
+async function updateJobMessage(id, message) {
+	await sql`
+		update sync_jobs
+		set message = ${message.slice(-4000)},
+			updated_at = now()
+		where id = ${id}
+	`;
+}
+
+function outputTail(output, maxLines = 18) {
+	return output.trim().split(/\r?\n/).filter(Boolean).slice(-maxLines).join('\n');
+}
+
 function runScript(script, job) {
 	return new Promise((resolve, reject) => {
 		const child = spawn(process.execPath, ['--experimental-strip-types', script], {
@@ -90,21 +125,41 @@ function runScript(script, job) {
 		});
 
 		let output = '';
+		let updateTimer;
+
+		const flushProgress = async () => {
+			const tail = outputTail(output);
+			await updateJobMessage(job.id, tail ? `Running ${script}\n\n${tail}` : `Running ${script}`);
+		};
+
+		const scheduleProgressUpdate = () => {
+			clearTimeout(updateTimer);
+			updateTimer = setTimeout(() => {
+				flushProgress().catch((error) => {
+					console.error(`Failed to update sync job progress: ${error.message}`);
+				});
+			}, 750);
+		};
 
 		child.stdout.on('data', (chunk) => {
 			const text = chunk.toString();
 			output += text;
 			process.stdout.write(text);
+			scheduleProgressUpdate();
 		});
 
 		child.stderr.on('data', (chunk) => {
 			const text = chunk.toString();
 			output += text;
 			process.stderr.write(text);
+			scheduleProgressUpdate();
 		});
 
 		child.on('error', reject);
-		child.on('close', (code) => {
+		child.on('close', async (code) => {
+			clearTimeout(updateTimer);
+			await flushProgress();
+
 			if (code === 0) {
 				resolve(output);
 				return;
@@ -137,6 +192,8 @@ async function processJob(job) {
 }
 
 async function tick() {
+	await recoverStaleJobs();
+
 	const job = await claimNextJob();
 	if (!job) {
 		console.log('No queued sync jobs.');

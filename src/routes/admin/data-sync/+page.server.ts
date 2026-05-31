@@ -4,7 +4,12 @@ import { isAdmin } from '$lib/server/authorization';
 import { getDataHealth } from '$lib/server/nfl/data-health';
 import { getSeasonHistory } from '$lib/server/nfl/history';
 import { getAppSettings } from '$lib/server/nfl/settings';
-import { createSyncJob, isSyncJobType, listRecentSyncJobs } from '$lib/server/nfl/sync-jobs';
+import {
+	cancelQueuedSyncJob,
+	createSyncJob,
+	isSyncJobType,
+	listRecentSyncJobs
+} from '$lib/server/nfl/sync-jobs';
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -19,7 +24,7 @@ export const load: PageServerLoad = async (event) => {
 	const [health, history, jobs] = await Promise.all([
 		getDataHealth(settings.currentSeason, settings.currentSeasonType),
 		getSeasonHistory(),
-		listRecentSyncJobs()
+		listRecentSyncJobs(20)
 	]);
 
 	return {
@@ -61,5 +66,30 @@ export const actions: Actions = {
 		});
 
 		return { message: `Queued ${job.type} sync job #${job.id}.` };
+	},
+
+	cancelJob: async (event) => {
+		if (!event.locals.user) {
+			return redirect(302, '/auth/login?redirectTo=/admin/data-sync');
+		}
+
+		if (!(await isAdmin(event.locals.user.id, event.locals.user.email))) {
+			return fail(403, { message: 'Only admin users can cancel sync jobs.' });
+		}
+
+		const formData = await event.request.formData();
+		const jobId = Number(formData.get('jobId'));
+
+		if (!Number.isInteger(jobId) || jobId < 1) {
+			return fail(400, { message: 'Choose a valid queued job.' });
+		}
+
+		const job = await cancelQueuedSyncJob(jobId, event.locals.user.email);
+
+		if (!job) {
+			return fail(409, { message: 'Only queued jobs can be canceled.' });
+		}
+
+		return { message: `Canceled ${job.type} sync job #${job.id}.` };
 	}
 };

@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
+	import { onMount } from 'svelte';
 	import type { ActionData } from './$types';
 	import type { PageServerData } from './$types';
 
@@ -19,6 +21,9 @@
 		{ value: 'postseason', label: 'Postseason' },
 		{ value: 'preseason', label: 'Preseason' }
 	];
+	const activeJobs = $derived(
+		data.jobs.filter((job) => job.status === 'queued' || job.status === 'running')
+	);
 
 	const syncSteps = $derived([
 		{
@@ -46,6 +51,16 @@
 			detail: `${data.health.activeSeasonStatRows} ${activeSeasonType} stat rows`
 		}
 	]);
+
+	onMount(() => {
+		const interval = setInterval(() => {
+			if (activeJobs.length > 0) {
+				void invalidateAll();
+			}
+		}, 5000);
+
+		return () => clearInterval(interval);
+	});
 </script>
 
 <svelte:head>
@@ -180,7 +195,7 @@
 						<p class="mt-1 text-sm text-[#8a909e]">Most recent queued and completed sync jobs.</p>
 					</div>
 					<div class="text-xs font-black tracking-widest text-[#8a909e] uppercase">
-						{data.jobs.length} shown
+						{activeJobs.length ? `${activeJobs.length} active` : `${data.jobs.length} shown`}
 					</div>
 				</div>
 
@@ -196,6 +211,7 @@
 									<th class="py-3 pr-4">Status</th>
 									<th class="py-3 pr-4">Requested</th>
 									<th class="py-3">Message</th>
+									<th class="py-3 pl-4 text-right">Action</th>
 								</tr>
 							</thead>
 							<tbody class="divide-y divide-white/10">
@@ -216,9 +232,11 @@
 														? 'border border-emerald-400/30 bg-emerald-400/10 text-emerald-300'
 														: job.status === 'failed'
 															? 'border border-red-400/30 bg-red-400/10 text-red-300'
-															: job.status === 'running'
-																? 'border border-sky-400/30 bg-sky-400/10 text-sky-300'
-																: 'border border-[#f5a623]/30 bg-[#f5a623]/10 text-[#f5a623]'
+															: job.status === 'canceled'
+																? 'border border-white/10 bg-[#0d0f14] text-[#8a909e]'
+																: job.status === 'running'
+																	? 'border border-sky-400/30 bg-sky-400/10 text-sky-300'
+																	: 'border border-[#f5a623]/30 bg-[#f5a623]/10 text-[#f5a623]'
 												]}
 											>
 												{job.status}
@@ -227,7 +245,31 @@
 										<td class="py-4 pr-4 text-[#c6cad3]">
 											{new Date(job.createdAt).toLocaleString()}
 										</td>
-										<td class="py-4 text-[#aeb4c0]">{job.error ?? job.message ?? '-'}</td>
+										<td class="py-4 text-[#aeb4c0]">
+											{#if job.error || job.message}
+												<pre
+													class="max-h-44 max-w-[32rem] overflow-auto border border-white/10 bg-black/30 p-3 font-mono text-xs leading-5 whitespace-pre-wrap text-[#c6cad3]">{job.error ??
+														job.message}</pre>
+											{:else}
+												-
+											{/if}
+										</td>
+										<td class="py-4 pl-4 text-right">
+											{#if job.status === 'queued'}
+												<form method="post" action="?/cancelJob" use:enhance>
+													<input name="jobId" type="hidden" value={job.id} />
+													<button
+														class="border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs font-black tracking-widest text-red-300 uppercase transition hover:bg-red-400/20"
+													>
+														Cancel
+													</button>
+												</form>
+											{:else}
+												<span class="text-xs font-bold tracking-widest text-[#555c69] uppercase"
+													>None</span
+												>
+											{/if}
+										</td>
 									</tr>
 								{/each}
 							</tbody>
