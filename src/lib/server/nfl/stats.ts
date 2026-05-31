@@ -1,4 +1,4 @@
-import { and, desc, eq, gt } from 'drizzle-orm';
+import { and, asc, desc, eq, gt } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { players, playerStats, teams } from '$lib/server/db/schema';
 
@@ -29,6 +29,14 @@ export async function getLatestPlayerStats(playerId: number) {
 		.limit(1);
 
 	return stats;
+}
+
+export async function getPlayerStatHistory(playerId: number) {
+	return db
+		.select()
+		.from(playerStats)
+		.where(eq(playerStats.playerId, playerId))
+		.orderBy(desc(playerStats.season), asc(playerStats.seasonType));
 }
 
 const leaderConfigs = [
@@ -126,6 +134,41 @@ export async function getTeamStatLeaders(
 	}
 
 	return leaders;
+}
+
+export async function getTeamTopPlayers(
+	abbreviation: string,
+	category: string,
+	season: number,
+	seasonType = 'regular',
+	limit = 5
+) {
+	const config = getLeagueLeaderConfig(category);
+
+	return db
+		.select({
+			value: config.column,
+			player: {
+				id: players.id,
+				name: players.name,
+				position: players.position,
+				jersey: players.jersey,
+				headshotUrl: players.headshotUrl
+			}
+		})
+		.from(playerStats)
+		.innerJoin(players, eq(playerStats.playerId, players.id))
+		.innerJoin(teams, eq(players.teamId, teams.id))
+		.where(
+			and(
+				eq(teams.abbreviation, abbreviation.toUpperCase()),
+				eq(playerStats.season, season),
+				eq(playerStats.seasonType, seasonType),
+				gt(config.column, 0)
+			)
+		)
+		.orderBy(desc(config.column))
+		.limit(limit);
 }
 
 export function isLeagueLeaderCategory(value: string): value is LeagueLeaderCategory {

@@ -71,10 +71,26 @@
 			schedule: Game[];
 			record: TeamRecord;
 			statLeaders: StatLeader[];
+			role: string;
+			topPlayers: Record<
+				string,
+				{
+					value: number | string;
+					player: {
+						id: number;
+						name: string;
+						position: string;
+						jersey: string | null;
+						headshotUrl: string | null;
+					};
+				}[]
+			>;
 		};
 	} = $props();
 	const team = $derived(data.team);
 	let activeRosterTab = $state<keyof RosterGroups>('offense');
+	let positionFilter = $state('all');
+	let scheduleFilter = $state('all');
 
 	const seasonOptions = [2025, 2026, 2027, 2028];
 	const seasonTypes = [
@@ -90,6 +106,26 @@
 	];
 
 	const activePlayers = $derived(data.roster[activeRosterTab]);
+	const filteredPlayers = $derived(
+		positionFilter === 'all'
+			? activePlayers
+			: activePlayers.filter((player) => player.position === positionFilter)
+	);
+	const positionOptions = $derived([
+		'all',
+		...Array.from(new Set(activePlayers.map((player) => player.position))).sort()
+	]);
+	const filteredSchedule = $derived(
+		scheduleFilter === 'all'
+			? data.schedule
+			: data.schedule.filter((game) => game.status === scheduleFilter)
+	);
+	const teamTopBlocks = $derived([
+		{ label: 'Top Passers', suffix: 'yds', rows: data.topPlayers.passing },
+		{ label: 'Top Rushers', suffix: 'yds', rows: data.topPlayers.rushing },
+		{ label: 'Top Receivers', suffix: 'yds', rows: data.topPlayers.receiving },
+		{ label: 'Top Tacklers', suffix: 'tkl', rows: data.topPlayers.tackles }
+	]);
 
 	function opponent(game: Game) {
 		return game.homeTeam === team.abbreviation ? game.awayTeam : game.homeTeam;
@@ -154,6 +190,10 @@
 
 <svelte:head>
 	<title>{team.city} {team.name} | GridIron</title>
+	<meta
+		name="description"
+		content={`${team.city} ${team.name} roster, schedule, record, and synced ${data.activeSeason} ${data.activeSeasonType} team leaders on GridIron.`}
+	/>
 </svelte:head>
 
 <main
@@ -279,7 +319,12 @@
 				<div class="border border-dashed border-white/15 bg-[#161921] p-8 text-center">
 					<div class="text-sm font-bold text-[#aeb4c0]">No team stat leaders available yet.</div>
 					<div class="mt-2 text-xs text-[#8a909e]">
-						Run `npm run sync:stats` to populate player stats.
+						Stats are not synced for this selection.
+						{#if data.role === 'admin'}
+							<a class="font-black text-[#f5a623] hover:text-[#ffbd4a]" href="/admin/data-sync">
+								Queue a stats sync.
+							</a>
+						{/if}
 					</div>
 				</div>
 			{:else}
@@ -313,6 +358,52 @@
 		</div>
 	</section>
 
+	<section class="border-b border-white/10 bg-[#161921]">
+		<div class="mx-auto max-w-7xl px-4 py-8">
+			<div class="mb-5 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+				<div>
+					<h2 class="text-sm font-black tracking-widest text-[#f5a623] uppercase">
+						Top Five By Category
+					</h2>
+					<p class="mt-1 text-sm text-[#8a909e]">Team ranking depth for the selected season.</p>
+				</div>
+			</div>
+			<div class="grid gap-4 lg:grid-cols-4">
+				{#each teamTopBlocks as block}
+					<article class="border border-white/10 bg-[#0d0f14] p-4">
+						<h3 class="mb-3 text-xs font-black tracking-widest text-[#8a909e] uppercase">
+							{block.label}
+						</h3>
+						{#if block.rows.length}
+							<div class="space-y-2">
+								{#each block.rows as row, index}
+									<a
+										href={playerHref(row.player.id)}
+										class="flex items-center justify-between gap-3 border border-white/10 bg-[#161921] p-2 transition hover:border-[#f5a623]/50"
+									>
+										<div class="min-w-0">
+											<div class="truncate text-sm font-black text-white">
+												{index + 1}. {row.player.name}
+											</div>
+											<div class="text-xs text-[#8a909e]">{row.player.position}</div>
+										</div>
+										<div class="shrink-0 font-black text-[#f5a623]">
+											{typeof row.value === 'number' ? row.value.toLocaleString() : row.value}
+										</div>
+									</a>
+								{/each}
+							</div>
+						{:else}
+							<div class="border border-dashed border-white/15 p-5 text-sm text-[#8a909e]">
+								No synced data.
+							</div>
+						{/if}
+					</article>
+				{/each}
+			</div>
+		</div>
+	</section>
+
 	<section class="mx-auto grid max-w-7xl gap-5 px-4 py-10 lg:grid-cols-[0.85fr_1.65fr]">
 		<div class="border border-white/10 bg-[#161921] p-5">
 			<div class="mb-5 flex items-end justify-between gap-4">
@@ -324,20 +415,45 @@
 					</p>
 				</div>
 				<div class="text-right text-xs font-black tracking-widest text-[#8a909e] uppercase">
-					{data.schedule.length} games
+					{filteredSchedule.length}/{data.schedule.length} games
 				</div>
+			</div>
+			<div class="mb-4 grid grid-cols-2 gap-2">
+				{#each ['all', 'scheduled', 'inprogress', 'closed'] as status}
+					<button
+						type="button"
+						class={[
+							'px-3 py-2 text-xs font-black tracking-wide uppercase transition',
+							scheduleFilter === status
+								? 'bg-[#f5a623] text-[#11151d]'
+								: 'border border-white/10 text-[#8a909e] hover:text-white'
+						]}
+						onclick={() => (scheduleFilter = status)}
+					>
+						{status}
+					</button>
+				{/each}
 			</div>
 
 			{#if data.schedule.length === 0}
 				<div class="border border-dashed border-white/15 bg-[#0d0f14] p-8 text-center">
 					<div class="text-sm font-bold text-[#aeb4c0]">No schedule synced yet.</div>
 					<div class="mt-2 text-xs text-[#8a909e]">
-						Run `npm run sync:schedules` to populate games.
+						Schedules are not synced for this season.
+						{#if data.role === 'admin'}
+							<a class="font-black text-[#f5a623] hover:text-[#ffbd4a]" href="/admin/data-sync">
+								Queue a schedules sync.
+							</a>
+						{/if}
 					</div>
+				</div>
+			{:else if filteredSchedule.length === 0}
+				<div class="border border-dashed border-white/15 bg-[#0d0f14] p-8 text-center">
+					<div class="text-sm font-bold text-[#aeb4c0]">No games match this filter.</div>
 				</div>
 			{:else}
 				<div class="max-h-[640px] space-y-2 overflow-y-auto pr-1">
-					{#each data.schedule as game}
+					{#each filteredSchedule as game}
 						<div class="border border-white/10 bg-[#0d0f14] p-3">
 							<div class="mb-2 flex items-center justify-between gap-3">
 								<div class="text-xs font-black tracking-widest text-[#8a909e] uppercase">
@@ -392,17 +508,32 @@
 					{/each}
 				</div>
 			</div>
+			<div class="mb-4">
+				<select
+					class="min-h-11 w-full border-white/10 bg-[#0d0f14] text-white focus:border-[#f5a623] focus:ring-[#f5a623] sm:w-48"
+					bind:value={positionFilter}
+				>
+					{#each positionOptions as position}
+						<option value={position}>{position === 'all' ? 'All Positions' : position}</option>
+					{/each}
+				</select>
+			</div>
 
 			{#if activePlayers.length === 0}
 				<div class="border border-dashed border-white/15 bg-[#0d0f14] p-8 text-center">
 					<div class="text-sm font-bold text-[#aeb4c0]">No players synced for this group yet.</div>
 					<div class="mt-2 text-xs text-[#8a909e]">
-						Run `npm run sync:rosters` to populate roster data.
+						Rosters are not synced for this team.
+						{#if data.role === 'admin'}
+							<a class="font-black text-[#f5a623] hover:text-[#ffbd4a]" href="/admin/data-sync">
+								Queue a rosters sync.
+							</a>
+						{/if}
 					</div>
 				</div>
 			{:else}
 				<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-					{#each activePlayers as player}
+					{#each filteredPlayers as player}
 						<a
 							href={playerHref(player.id)}
 							class="group flex min-h-24 items-center gap-3 border border-white/10 bg-[#0d0f14] p-3 transition hover:border-[#f5a623]/50"

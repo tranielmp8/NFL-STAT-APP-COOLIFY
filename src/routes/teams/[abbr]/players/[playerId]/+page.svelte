@@ -45,8 +45,10 @@
 			team: Team;
 			player: Player;
 			stats: PlayerStats | undefined;
+			history: PlayerStats[];
 			activeSeason: number;
 			activeSeasonType: string;
+			role: string;
 		};
 	} = $props();
 
@@ -111,6 +113,10 @@
 
 <svelte:head>
 	<title>{data.player.name} | {data.team.abbreviation} | GridIron</title>
+	<meta
+		name="description"
+		content={`${data.player.name} season stats, team, position, and synced NFL history on GridIron.`}
+	/>
 </svelte:head>
 
 <main
@@ -215,7 +221,87 @@
 						Stats have not been synced for this player.
 					</div>
 					<div class="mt-2 text-xs text-[#8a909e]">
-						Run `npm run sync:stats` after roster sync for {data.activeSeason}.
+						Stats are not available for {data.activeSeason}
+						{data.activeSeasonType}.
+						{#if data.role === 'admin'}
+							<a class="font-black text-[#f5a623] hover:text-[#ffbd4a]" href="/admin/data-sync">
+								Queue a stats sync.
+							</a>
+						{/if}
+					</div>
+				</div>
+			{/if}
+		</div>
+	</section>
+
+	<section class="mx-auto max-w-7xl px-4 pb-12">
+		<div class="border border-white/10 bg-[#161921] p-5">
+			<div class="mb-5 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+				<div>
+					<h2 class="text-sm font-black tracking-widest text-[#f5a623] uppercase">
+						Available History
+					</h2>
+					<p class="mt-1 text-sm text-[#8a909e]">
+						All synced seasons and season types for this player.
+					</p>
+				</div>
+				<div class="text-xs font-black tracking-widest text-[#8a909e] uppercase">
+					{data.history.length} rows
+				</div>
+			</div>
+
+			{#if data.history.length}
+				<div class="overflow-x-auto">
+					<table class="w-full min-w-[720px] text-left text-sm">
+						<thead
+							class="border-b border-white/10 text-xs font-black tracking-widest text-[#8a909e] uppercase"
+						>
+							<tr>
+								<th class="py-3 pr-4">Season</th>
+								<th class="py-3 pr-4">Type</th>
+								<th class="py-3 pr-4">Games</th>
+								<th class="py-3 pr-4">Pass</th>
+								<th class="py-3 pr-4">Rush</th>
+								<th class="py-3 pr-4">Receiving</th>
+								<th class="py-3 pr-4">Defense</th>
+								<th class="py-3">Open</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-white/10">
+							{#each data.history as row}
+								<tr>
+									<td class="py-4 pr-4 font-black text-white">{row.season}</td>
+									<td class="py-4 pr-4 text-[#c6cad3] capitalize">{row.seasonType}</td>
+									<td class="py-4 pr-4 text-[#c6cad3]">{row.gamesPlayed}</td>
+									<td class="py-4 pr-4 text-[#c6cad3]">
+										{row.passYards.toLocaleString()} yds / {row.passTds} TD
+									</td>
+									<td class="py-4 pr-4 text-[#c6cad3]">
+										{row.rushYards.toLocaleString()} yds / {row.rushTds} TD
+									</td>
+									<td class="py-4 pr-4 text-[#c6cad3]">
+										{row.receptions} rec / {row.recYards.toLocaleString()} yds
+									</td>
+									<td class="py-4 pr-4 text-[#c6cad3]">
+										{row.tackles} tkl / {row.sacks} sacks
+									</td>
+									<td class="py-4">
+										<a
+											class="font-black text-[#f5a623] hover:text-[#ffbd4a]"
+											href={`?season=${row.season}&type=${row.seasonType}`}
+										>
+											View
+										</a>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{:else}
+				<div class="border border-dashed border-white/15 bg-[#0d0f14] p-8 text-center">
+					<div class="text-sm font-bold text-[#aeb4c0]">
+						No synced history exists for this player yet.
 					</div>
 				</div>
 			{/if}

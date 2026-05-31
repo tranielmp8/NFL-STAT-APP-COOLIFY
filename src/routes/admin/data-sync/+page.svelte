@@ -21,6 +21,23 @@
 		{ value: 'postseason', label: 'Postseason' },
 		{ value: 'preseason', label: 'Preseason' }
 	];
+	const syncPresets = $derived([
+		{
+			label: 'Current Full Sync',
+			type: 'full',
+			season: activeSeason,
+			seasonType: activeSeasonType
+		},
+		{ label: 'Nightly Stats', type: 'stats', season: activeSeason, seasonType: activeSeasonType },
+		{
+			label: 'Schedules Only',
+			type: 'schedules',
+			season: activeSeason,
+			seasonType: activeSeasonType
+		},
+		{ label: 'Regular Season', type: 'full', season: activeSeason, seasonType: 'regular' },
+		{ label: 'Postseason', type: 'full', season: activeSeason, seasonType: 'postseason' }
+	]);
 	const activeJobs = $derived(
 		data.jobs.filter((job) => job.status === 'queued' || job.status === 'running')
 	);
@@ -201,6 +218,28 @@
 						{form.message}
 					</div>
 				{/if}
+
+				<div class="mt-6 border-t border-white/10 pt-5">
+					<h3 class="text-xs font-black tracking-widest text-[#8a909e] uppercase">Queue Presets</h3>
+					<div class="mt-3 grid gap-2 sm:grid-cols-2">
+						{#each syncPresets as preset}
+							<form method="post" action="?/queueJob" use:enhance>
+								<input name="type" type="hidden" value={preset.type} />
+								<input name="season" type="hidden" value={preset.season} />
+								<input name="seasonType" type="hidden" value={preset.seasonType} />
+								<button
+									class="w-full border border-white/10 bg-[#0d0f14] px-3 py-3 text-left text-xs font-black tracking-wide text-[#c6cad3] uppercase transition hover:border-[#f5a623]/50 hover:text-white"
+								>
+									{preset.label}
+									<span class="block pt-1 text-[10px] text-[#8a909e]">
+										{preset.season}
+										{preset.seasonType}
+									</span>
+								</button>
+							</form>
+						{/each}
+					</div>
+				</div>
 			</div>
 
 			<div class="border border-white/10 bg-[#161921] p-5">

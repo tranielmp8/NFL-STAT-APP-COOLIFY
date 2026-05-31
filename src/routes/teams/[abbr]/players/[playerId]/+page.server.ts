@@ -1,12 +1,13 @@
 import { error } from '@sveltejs/kit';
+import { getUserRole } from '$lib/server/authorization';
 import { getPlayerById } from '$lib/server/nfl/players';
-import { getPlayerStats } from '$lib/server/nfl/stats';
+import { getPlayerStatHistory, getPlayerStats } from '$lib/server/nfl/stats';
 import { getAppSettings } from '$lib/server/nfl/settings';
 import { ensureTeamsSeeded, getTeamByAbbreviation } from '$lib/server/nfl/teams';
 
 const seasonTypes = new Set(['preseason', 'regular', 'postseason']);
 
-export async function load({ params, url }) {
+export async function load({ params, url, locals }) {
 	await ensureTeamsSeeded();
 
 	const team = await getTeamByAbbreviation(params.abbr);
@@ -21,13 +22,19 @@ export async function load({ params, url }) {
 	const typeParam = url.searchParams.get('type') ?? settings.currentSeasonType;
 	const activeSeason = Number.isInteger(seasonParam) ? seasonParam : settings.currentSeason;
 	const activeSeasonType = seasonTypes.has(typeParam) ? typeParam : settings.currentSeasonType;
-	const stats = await getPlayerStats(player.id, activeSeason, activeSeasonType);
+	const [stats, history] = await Promise.all([
+		getPlayerStats(player.id, activeSeason, activeSeasonType),
+		getPlayerStatHistory(player.id)
+	]);
+	const role = locals.user ? await getUserRole(locals.user.id, locals.user.email) : 'user';
 
 	return {
 		team,
 		player,
 		stats,
+		history,
 		activeSeason,
-		activeSeasonType
+		activeSeasonType,
+		role
 	};
 }

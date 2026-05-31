@@ -33,6 +33,26 @@
 		{ label: 'Rushing', category: 'rushing', rows: data.leaderPreview.rushing },
 		{ label: 'Receiving', category: 'receiving', rows: data.leaderPreview.receiving }
 	]);
+
+	const gameBlocks = $derived([
+		{ label: 'Upcoming', rows: data.upcomingGames },
+		{ label: 'Recent Finals', rows: data.recentGames }
+	]);
+
+	function gameDate(game: { gameTime: string | Date | null }) {
+		if (!game.gameTime) return 'TBD';
+		return new Intl.DateTimeFormat('en-US', {
+			month: 'short',
+			day: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit'
+		}).format(new Date(game.gameTime));
+	}
+
+	function gameScore(game: { homeScore: number | null; awayScore: number | null; status: string }) {
+		if (game.homeScore === null || game.awayScore === null) return game.status;
+		return `${game.awayScore}-${game.homeScore}`;
+	}
 </script>
 
 <svelte:head>
@@ -193,6 +213,59 @@
 	</section>
 
 	<section id="teams" class="mx-auto max-w-7xl px-4 py-10">
+		<section class="mb-10 border border-white/10 bg-[#161921] p-5">
+			<div class="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+				<div>
+					<h2 class="text-2xl font-black">Games Desk</h2>
+					<p class="mt-1 text-sm text-[#8a909e]">
+						Recent finals and upcoming games for {data.activeSeason}.
+					</p>
+				</div>
+				{#if data.role === 'admin' && data.upcomingGames.length === 0 && data.recentGames.length === 0}
+					<a
+						class="bg-[#f5a623] px-4 py-3 text-sm font-black text-[#11151d] transition hover:bg-[#ffbd4a]"
+						href="/admin/data-sync"
+					>
+						Sync Schedules
+					</a>
+				{/if}
+			</div>
+
+			<div class="grid gap-4 lg:grid-cols-2">
+				{#each gameBlocks as block}
+					<div class="border border-white/10 bg-[#0d0f14] p-4">
+						<h3 class="mb-3 text-sm font-black tracking-widest text-[#f5a623] uppercase">
+							{block.label}
+						</h3>
+						{#if block.rows.length}
+							<div class="space-y-2">
+								{#each block.rows as game}
+									<div class="border border-white/10 bg-[#161921] p-3">
+										<div class="mb-2 flex items-center justify-between text-xs text-[#8a909e]">
+											<span>Week {game.week ?? '-'}</span>
+											<span>{gameDate(game)}</span>
+										</div>
+										<div class="flex items-center justify-between gap-4">
+											<div class="min-w-0 font-black text-white">
+												{game.awayTeam} @ {game.homeTeam}
+											</div>
+											<div class="shrink-0 text-lg font-black text-[#f5a623]">
+												{gameScore(game)}
+											</div>
+										</div>
+									</div>
+								{/each}
+							</div>
+						{:else}
+							<div class="border border-dashed border-white/15 p-6 text-sm text-[#8a909e]">
+								No {block.label.toLowerCase()} available.
+							</div>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		</section>
+
 		<div class="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
 			<div>
 				<h2 class="text-2xl font-black">All Franchises</h2>

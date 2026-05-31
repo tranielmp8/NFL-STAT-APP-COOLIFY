@@ -26,6 +26,10 @@
 
 <svelte:head>
 	<title>League Leaders | GridIron</title>
+	<meta
+		name="description"
+		content="Browse NFL league leaders by season, season type, and stat category on GridIron."
+	/>
 </svelte:head>
 
 <main class="min-h-screen bg-[#0d0f14] text-[#f0f2f5]">
@@ -150,7 +154,7 @@
 									<td class="py-4 pr-4">
 										<a
 											class="flex items-center gap-3"
-											href={`/teams/${row.team.abbreviation.toLowerCase()}/players/${row.player.id}`}
+											href={`/teams/${row.team.abbreviation.toLowerCase()}/players/${row.player.id}?season=${data.season}&type=${data.seasonType}`}
 										>
 											<div
 												class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-white"
@@ -186,7 +190,7 @@
 									<td class="py-4 pr-4">
 										<a
 											class="font-black text-[#c6cad3] transition hover:text-white"
-											href={`/teams/${row.team.abbreviation.toLowerCase()}`}
+											href={`/teams/${row.team.abbreviation.toLowerCase()}?season=${data.season}&type=${data.seasonType}`}
 										>
 											{row.team.abbreviation}
 										</a>

@@ -6,6 +6,10 @@
 
 <svelte:head>
 	<title>Player Search | GridIron</title>
+	<meta
+		name="description"
+		content="Search synced NFL players by name, position, team abbreviation, or team name on GridIron."
+	/>
 </svelte:head>
 
 <main class="min-h-screen bg-[#0d0f14] text-[#f0f2f5]">

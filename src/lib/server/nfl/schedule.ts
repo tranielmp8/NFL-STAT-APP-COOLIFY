@@ -1,4 +1,4 @@
-import { and, asc, eq, or } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lte, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { games } from '$lib/server/db/schema';
 
@@ -12,6 +12,39 @@ export async function getScheduleForTeam(abbreviation: string, season: number) {
 		.from(games)
 		.where(and(eq(games.season, season), or(eq(games.homeTeam, abbr), eq(games.awayTeam, abbr))))
 		.orderBy(asc(games.week), asc(games.gameTime));
+}
+
+export async function getRecentGames(season: number, limit = 8) {
+	return db
+		.select()
+		.from(games)
+		.where(and(eq(games.season, season), eq(games.status, 'closed')))
+		.orderBy(desc(games.gameTime))
+		.limit(limit);
+}
+
+export async function getUpcomingGames(season: number, limit = 8) {
+	return db
+		.select()
+		.from(games)
+		.where(
+			and(
+				eq(games.season, season),
+				or(eq(games.status, 'scheduled'), eq(games.status, 'inprogress')),
+				gte(games.gameTime, new Date())
+			)
+		)
+		.orderBy(asc(games.gameTime))
+		.limit(limit);
+}
+
+export async function getCompletedGamesThrough(season: number, date = new Date(), limit = 8) {
+	return db
+		.select()
+		.from(games)
+		.where(and(eq(games.season, season), eq(games.status, 'closed'), lte(games.gameTime, date)))
+		.orderBy(desc(games.gameTime))
+		.limit(limit);
 }
 
 export function recordForTeam(schedule: Game[], abbreviation: string) {
